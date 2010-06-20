@@ -2,4 +2,23 @@ This is a bash script to scan a series of pages from a document into a pdf, at t
 
 This provides the original scan but also something searchable, e.g. for use in google desktop.
 
+I played around with tesseract, very good OCR but no layout analisys!! so cuneiform it is.
 
+This was built and tested on a gnome machine but i dont see any reason for it to fail on kde or non linux OSs, feedback on this would be welcome.
+
+
+To install, currently only manual install:
+
+Download and copy the script to a location such as /usr/bin/
+$ wget http://github.com/dougle/scan-OCR-pdf/raw/master/scan_ocr_pdf -o /usr/bin/scan_ocr_pdf && \
+  chmod +x /usr/bin/scan_ocr_pdf
+
+You can then add it to your panel or applications menu or run it in a terminal using the command:
+
+$ scan_ocr_pdf "$HOME/Documents/Scanned"
+
+
+
+
+More options and features will be added soon, like a simple zenity OK/Cancel interface
+Forks, Patches, Feature requests, Bug reports, comments welome.
