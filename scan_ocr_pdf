@@ -4,7 +4,7 @@ TMP_FOLDER=`mktemp -d`
 IMAGING_DEVICE=`echo \`scanimage -L\` | sed -e "s/^device \\\`\(.*\)' is a .*$/\1/g"`
 DATE_STAMP=`date +'%s'`
 SCANNING_RES=250
-DESTINATION=$1
+DESTINATION="$1"
 INSTALL=1
 
 
