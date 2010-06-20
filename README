@@ -19,6 +19,12 @@ $ scan_ocr_pdf "$HOME/Documents/Scanned"
 
 
 
+To debug simple add -x to the first line:
+#!/bin/bash -x
+
+This'll add a line by line transcription of the execution and would be usefull in any weird/occasional bugs.
+
+
 
 More options and features will be added soon, like a simple zenity OK/Cancel interface
 Forks, Patches, Feature requests, Bug reports, comments welome.
