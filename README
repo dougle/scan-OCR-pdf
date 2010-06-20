@@ -1,0 +1,5 @@
+This is a bash script to scan a series of pages from a document into a pdf, at the end of the pdf is the output from OCR on each page.
+
+This provides the original scan but also something searchable, e.g. for use in google desktop.
+
+
