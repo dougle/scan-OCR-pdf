@@ -1,0 +1,102 @@
+#!/bin/bash
+
+TMP_FOLDER=`mktemp -d`
+IMAGING_DEVICE=`echo \`scanimage -L\` | sed -e "s/^device \\\`\(.*\)' is a .*$/\1/g"`
+DATE_STAMP=`date +'%s'`
+SCANNING_RES=250
+DESTINATION=$1
+INSTALL=1
+
+
+# check for the neccessary packages
+if [ ! `which 'a2ps'` ]
+then
+	echo "Please install a2ps\n"
+	INSTALL=0
+fi
+
+if [ ! `which 'convert'` ]
+then
+	echo "Please install imagemagick\n"
+	INSTALL=0
+fi
+
+if [ ! `which 'scanimage'` ]
+then
+	echo "Please install xsane\n"
+	INSTALL=0
+fi
+
+if [ ! `which 'cuneiform'` ]
+then
+	echo "Please install cuneiform-core\n"
+	INSTALL=0
+fi
+
+if [ ! `which 'gs'` ]
+then
+	echo "Please install ghostscript\n"
+	INSTALL=0
+fi
+
+# offer some install advice
+if [ $INSTALL -eq 0 ]
+then
+	echo "To install all dependancies use (as root): aptitude install imagemagick xsane ghsotscript cuneiform a2ps"
+	exit 1
+fi
+
+
+mkdir -p $TMP_FOLDER
+mkdir -p $DESTINATION
+for i in $(seq --format=%003.f 1 150); do
+  echo "Prepare page $i and press Enter (q to stop scanning)"
+  read key_input
+
+  if [[ $key_input == 'q' ]]
+  then
+  	break
+  fi
+  
+  scanimage --device $IMAGING_DEVICE --format=pnm --mode 'Color' --resolution $SCANNING_RES -l 0 -t 0 -x 210 -y 297 >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
+
+  if [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ]
+  then
+  	echo "xSane scanning failed: quiting"
+  	exit 1
+  fi
+
+  convert "$TMP_FOLDER/$DATE_STAMP-$i.pnm" "$TMP_FOLDER/$DATE_STAMP-$i.bmp"
+  rm "$TMP_FOLDER/$DATE_STAMP-$i.pnm"
+  
+  cuneiform "$TMP_FOLDER/$DATE_STAMP-$i.bmp" -o "$TMP_FOLDER/$DATE_STAMP-$i.txt"
+  
+  if [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.txt" ]
+  then
+  	echo "Cuneiform Failed: quiting"
+  	exit 1
+  fi
+  
+  a2ps "$TMP_FOLDER/$DATE_STAMP-$i.txt" -o "$TMP_FOLDER/$DATE_STAMP-text-$i.ps"
+  rm "$TMP_FOLDER/$DATE_STAMP-$i.txt"
+  convert -page A4+0+0 "$TMP_FOLDER/$DATE_STAMP-$i.bmp" "$TMP_FOLDER/$DATE_STAMP-page-$i.ps"
+  rm "$TMP_FOLDER/$DATE_STAMP-$i.bmp"
+done
+
+OUTPUT_FILE=`date +'%d %B %Y - %R:%S'`
+cat $TMP_FOLDER/$DATE_STAMP-text-*.ps > "$TMP_FOLDER/$DATE_STAMP-text.ps"
+INPUT_FILES=`ls $TMP_FOLDER/$DATE_STAMP-page-*.ps "$TMP_FOLDER/$DATE_STAMP-text.ps"`
+INPUT_FILES=`echo "$INPUT_FILES" | sed 's|\n| |'`
+
+# collect all of the files into one final pdf
+if [ ! -z "$INPUT_FILES" ]
+then
+	gs -dNOPAUSE -sDEVICE=pdfwrite -dBATCH -sOutputFile="$DESTINATION/$OUTPUT_FILE.pdf" $INPUT_FILES
+	rm -f $INPUT_FILES
+	rm -f $TMP_FOLDER/$DATE_STAMP-text-*.ps
+else
+	echo "No scanned pages or OCRed text found, scanimage or cuneiform failed\nCleaning out temp files."
+	rm -f $TMP_FOLDER/$DATE_STAMP-*
+fi
+
+scanimage --device $IMAGING_DEVICE -n --lamp-off
