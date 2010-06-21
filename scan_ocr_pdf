@@ -1,11 +1,65 @@
 #!/bin/bash
 
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script prompts, scans, OCRs then combines pages into a pdf
+
+OPTIONS:
+   -h      Show this message
+   -d      Destination directory
+   -r      Resolution to use while scanning,
+           (can cause cuneiform to buffer overflow when set too high)
+   -u      Use this device for scanning, instead of the first scanner listed
+           See   $ scanimage -L    for your devices
+   -s      Options to pass to scanimage. Default is:
+           "--mode 'Color'  -l 0 -t 0 -x 210 -y 297" (colour A4 area)
+EOF
+}
+
+
 TMP_FOLDER=`mktemp -d`
-IMAGING_DEVICE=`echo \`scanimage -L\` | sed -e "s/^device \\\`\(.*\)' is a .*$/\1/g"`
-DATE_STAMP=`date +'%s'`
 SCANNING_RES=250
-DESTINATION="$1"
+DESTINATION="$HOME/Documents"
+IMAGING_DEVICE=
+SCANIMAGE_OPTIONS=
+
+while getopts “h:d:r:g:u” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         d)
+             DESTINATION=$OPTARG
+             ;;
+         r)
+             SCANNING_RES=$OPTARG
+             ;;
+         u)
+             IMAGING_DEVICE=$OPTARG
+             ;;
+         s)
+         	 SCANIMAGE_OPTIONS=$OPTARG
+         	 ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+# take the first scanner
+if [ -z $IMAGING_DEVICE ]; then
+	IMAGING_DEVICE=`echo \`scanimage -L\` | sed -e "s/^device \\\`\(.*\)' is a .*$/\1/g"`
+fi
+
+DATE_STAMP=`date +'%s'`
 INSTALL=1
+
 
 
 # check for the neccessary packages
@@ -58,7 +112,7 @@ for i in $(seq --format=%003.f 1 150); do
   	break
   fi
   
-  scanimage --device $IMAGING_DEVICE --format=pnm --mode 'Color' --resolution $SCANNING_RES -l 0 -t 0 -x 210 -y 297 >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
+  scanimage --device $IMAGING_DEVICE --resolution $SCANNING_RES --mode 'Color'  -l 0 -t 0 -x 210 -y 297       $SCANIMAGE_OPTIONS          --format=pnm >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
 
   if [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ]
   then
