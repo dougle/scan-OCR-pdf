@@ -14,6 +14,7 @@ OPTIONS:
            (can cause cuneiform to buffer overflow when set too high)
    -u      Use this device for scanning, instead of the first scanner listed
            See   $ scanimage -L    for your devices
+   -g      Interface mode, prompts use zenity
    -s      Options to pass to scanimage. Default is:
            "--mode 'Color'  -l 0 -t 0 -x 210 -y 297" (colour A4 area)
 EOF
@@ -25,8 +26,9 @@ SCANNING_RES=250
 DESTINATION="$HOME/Documents"
 IMAGING_DEVICE=
 SCANIMAGE_OPTIONS=
+GUI=1
 
-while getopts “h:d:r:g:u” OPTION
+while getopts “h:d:r:u:g:s” OPTION
 do
      case $OPTION in
          h)
@@ -42,6 +44,9 @@ do
          u)
              IMAGING_DEVICE=$OPTARG
              ;;
+         g)
+             GUI=0
+             ;;
          s)
          	 SCANIMAGE_OPTIONS=$OPTARG
          	 ;;
@@ -54,49 +59,55 @@ done
 
 # take the first scanner
 if [ -z $IMAGING_DEVICE ]; then
-	IMAGING_DEVICE=`echo \`scanimage -L\` | sed -e "s/^device \\\`\(.*\)' is a .*$/\1/g"`
+	DEVICES=`scanimage -f "%d"`
+	if [ ! -z "$DEVICES" ];then
+		IMAGING_DEVICE=`echo $DEVICES | sed -e "s/\(.*\)\n/\1/"`
+	else
+		DEVICE_ERROR="xsane was unable to locate any scanning devices."
+		if [ $GUI -eq 0 ]; then
+			zenity --error --text="$DEVICE_ERROR"
+		else
+			echo "$DEVICE_ERROR"
+		fi
+		exit 1
+	fi	
 fi
 
 DATE_STAMP=`date +'%s'`
-INSTALL=1
+INSTALL_ERROR=
 
 
 
 # check for the neccessary packages
-if [ ! `which 'a2ps'` ]
-then
-	echo "Please install a2ps\n"
-	INSTALL=0
+if [ ! `which 'a2ps'` ];then
+	INSTALL_ERROR="$INSTALL_ERROR\nPlease install a2ps"
 fi
 
-if [ ! `which 'convert'` ]
-then
-	echo "Please install imagemagick\n"
-	INSTALL=0
+if [ ! `which 'convert'` ];then
+	INSTALL_ERROR="$INSTALL_ERROR\nPlease install imagemagick"
 fi
 
-if [ ! `which 'scanimage'` ]
-then
-	echo "Please install xsane\n"
-	INSTALL=0
+if [ ! `which 'scanimage'` ];then
+	INSTALL_ERROR="$INSTALL_ERROR\nPlease install xsane"
 fi
 
-if [ ! `which 'cuneiform'` ]
-then
-	echo "Please install cuneiform-core\n"
-	INSTALL=0
+if [ ! `which 'cuneiform'` ];then
+	INSTALL_ERROR="$INSTALL_ERROR\nPlease install cuneiform-core"
 fi
 
-if [ ! `which 'gs'` ]
-then
-	echo "Please install ghostscript\n"
-	INSTALL=0
+if [ ! `which 'gs'` ];then
+	INSTALL_ERROR="$INSTALL_ERROR\nPlease install ghostscript"
 fi
 
 # offer some install advice
-if [ $INSTALL -eq 0 ]
+if [ ! -z $INSTALL_ERROR ]
 then
-	echo "To install all dependancies use (as root): aptitude install imagemagick xsane ghsotscript cuneiform a2ps"
+	INSTALL_ERROR="$INSTALL_ERROR\n\nTo install all dependancies use (as root): aptitude install imagemagick xsane ghsotscript cuneiform a2ps"
+	if [ $GUI -eq 0 ]; then
+		zenity --error --text="$INSTALL_ERROR"
+	else
+		echo "$INSTALL_ERROR"
+	fi
 	exit 1
 fi
 
@@ -104,53 +115,59 @@ fi
 mkdir -p $TMP_FOLDER
 mkdir -p $DESTINATION
 for i in $(seq --format=%003.f 1 150); do
-  echo "Prepare page $i and press Enter (q to stop scanning)"
-  read key_input
 
-  if [[ $key_input == 'q' ]]
-  then
+	# wait for user
+	if [ $GUI -eq 0 ];then
+		KEY_INPUT=`zenity --question --cancel-label="Make PDF & Quit" --ok-label="Scan" --text="Prepare page $i and press Scan."`
+	else
+		echo "Prepare page $i and press Enter (q to stop scanning)"
+		read KEY_INPUT
+	fi
+
+  # check for quit command
+  if [[ $KEY_INPUT == "q" || ($GUI -eq 0 && $KEY_INPUT == "") ]];then
   	break
   fi
-  
-  scanimage --device $IMAGING_DEVICE --resolution $SCANNING_RES --mode 'Color'  -l 0 -t 0 -x 210 -y 297       $SCANIMAGE_OPTIONS          --format=pnm >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
 
-  if [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ]
-  then
+  # scan image
+  scanimage --device $IMAGING_DEVICE --resolution $SCANNING_RES --mode 'Color'  -l 0 -t 0 -x 210 -y 297       $SCANIMAGE_OPTIONS          --format=pnm >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
+  
+  # check for scan failure, error and quit
+  if [ ! $? && ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ];then
   	echo "xSane scanning failed: quiting"
   	exit 1
   fi
 
+  # cuneiform can only work with bitmaps
   convert "$TMP_FOLDER/$DATE_STAMP-$i.pnm" "$TMP_FOLDER/$DATE_STAMP-$i.bmp"
   rm "$TMP_FOLDER/$DATE_STAMP-$i.pnm"
   
   cuneiform "$TMP_FOLDER/$DATE_STAMP-$i.bmp" -o "$TMP_FOLDER/$DATE_STAMP-$i.txt"
   
-  if [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.txt" ]
-  then
+  if [ !$? && ! -s "$TMP_FOLDER/$DATE_STAMP-$i.txt" ];then
   	echo "Cuneiform Failed: quiting"
   	exit 1
   fi
   
+  # store the page and COR output
   a2ps "$TMP_FOLDER/$DATE_STAMP-$i.txt" -o "$TMP_FOLDER/$DATE_STAMP-text-$i.ps"
   rm "$TMP_FOLDER/$DATE_STAMP-$i.txt"
   convert -page A4+0+0 "$TMP_FOLDER/$DATE_STAMP-$i.bmp" "$TMP_FOLDER/$DATE_STAMP-page-$i.ps"
   rm "$TMP_FOLDER/$DATE_STAMP-$i.bmp"
 done
 
-OUTPUT_FILE=`date +'%d %B %Y - %R:%S'`
-cat $TMP_FOLDER/$DATE_STAMP-text-*.ps > "$TMP_FOLDER/$DATE_STAMP-text.ps"
-INPUT_FILES=`ls $TMP_FOLDER/$DATE_STAMP-page-*.ps "$TMP_FOLDER/$DATE_STAMP-text.ps"`
-INPUT_FILES=`echo "$INPUT_FILES" | sed 's|\n| |'`
-
 # collect all of the files into one final pdf
-if [ ! -z "$INPUT_FILES" ]
-then
-	gs -dNOPAUSE -sDEVICE=pdfwrite -dBATCH -sOutputFile="$DESTINATION/$OUTPUT_FILE.pdf" $INPUT_FILES
-	rm -f $INPUT_FILES
+if [ ! -z `ls $TMP_FOLDER/` ];then
+	cat $TMP_FOLDER/$DATE_STAMP-text-*.ps > "$TMP_FOLDER/$DATE_STAMP-text.ps"
+	OUTPUT_FILE=`date +'%d %B %Y - %R:%S'`
+	INPUT_FILES=`ls $TMP_FOLDER/$DATE_STAMP-page-*.ps`
+	INPUT_FILES=`echo "$INPUT_FILES" | sed 's|\n| |'`
+
+   # ghostscript
+	gs -dNOPAUSE -sDEVICE=pdfwrite -dBATCH -sOutputFile="$DESTINATION/$OUTPUT_FILE.pdf" $INPUT_FILES "$TMP_FOLDER/$DATE_STAMP-text.ps"
+	rm -f $INPUT_FILES "$TMP_FOLDER/$DATE_STAMP-text.ps"
 	rm -f $TMP_FOLDER/$DATE_STAMP-text-*.ps
-else
-	echo "No scanned pages or OCRed text found, scanimage or cuneiform failed\nCleaning out temp files."
-	rm -f $TMP_FOLDER/$DATE_STAMP-*
 fi
 
+# turn off the device
 scanimage --device $IMAGING_DEVICE -n --lamp-off
