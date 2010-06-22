@@ -4,7 +4,7 @@ This provides the original scan but also something searchable, e.g. for use in g
 
 I played around with tesseract, very good OCR but no layout analisys!! so cuneiform it is.
 
-This was built and tested on a gnome machine but i dont see any reason for it to fail on kde or non linux OSs, feedback on this would be welcome.
+This was built and tested on a gnome machine but i dont see any reason for it to fail on kde or non linux OSs as long as dependancies are met, feedback on this would be welcome.
 
 
 To install, currently only manual install:
@@ -15,7 +15,19 @@ $ wget http://github.com/dougle/scan-OCR-pdf/raw/master/scan_ocr_pdf -o /usr/bin
 
 You can then add it to your panel or applications menu or run it in a terminal using the command:
 
-$ scan_ocr_pdf "$HOME/Documents/Scanned"
+$ scan_ocr_pdf -d "$HOME/Documents/Scanned"
+
+OPTIONS:
+   -h      Show this message
+   -d      Destination directory
+   -r      Resolution to use while scanning,
+           (can cause cuneiform to buffer overflow when set too high)
+   -u      Use this device for scanning, instead of the first scanner listed
+           See   $ scanimage -L    for your devices
+   -g      Interface mode, prompts use zenity
+   -s      Options to pass to scanimage. Default is:
+           "--mode 'Color'  -l 0 -t 0 -x 210 -y 297" (colour A4 area)
+
 
 
 

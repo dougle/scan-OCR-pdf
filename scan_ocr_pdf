@@ -116,9 +116,15 @@ mkdir -p $TMP_FOLDER
 mkdir -p $DESTINATION
 for i in $(seq --format=%003.f 1 150); do
 
+	# a more appropriate quit button first time
+	CANCEL_TEXT="Make PDF & Quit"
+	if [[ $i == "001" ]]; then
+		CANCEL_TEXT="Quit"
+	fi
+	
 	# wait for user
 	if [ $GUI -eq 0 ];then
-		KEY_INPUT=`zenity --question --cancel-label="Make PDF & Quit" --ok-label="Scan" --text="Prepare page $i and press Scan."`
+		KEY_INPUT=`zenity --question --cancel-label="$CANCEL_TEXT" --ok-label="Scan" --text="Prepare page $i and press Scan."`
 	else
 		echo "Prepare page $i and press Enter (q to stop scanning)"
 		read KEY_INPUT
