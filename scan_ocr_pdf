@@ -121,17 +121,21 @@ for i in $(seq --format=%003.f 1 150); do
 	if [[ $i == "001" ]]; then
 		CANCEL_TEXT="Quit"
 	fi
-	
+
+	KEY_INPUT=""	
 	# wait for user
 	if [ $GUI -eq 0 ];then
-		KEY_INPUT=`zenity --question --cancel-label="$CANCEL_TEXT" --ok-label="Scan" --text="Prepare page $i and press Scan."`
+		zenity --question --cancel-label="$CANCEL_TEXT" --ok-label="Scan" --text="Prepare page $i and press Scan."
+		if [ $? -gt 0 ];then
+			KEY_INPUT="q"
+		fi
 	else
 		echo "Prepare page $i and press Enter (q to stop scanning)"
 		read KEY_INPUT
 	fi
 
   # check for quit command
-  if [[ $KEY_INPUT == "q" || ($GUI -eq 0 && $KEY_INPUT == "") ]];then
+  if [[ "$KEY_INPUT" == "q" || "$KEY_INPUT" == "Q" ]];then
   	break
   fi
 
