@@ -28,7 +28,7 @@ IMAGING_DEVICE=
 SCANIMAGE_OPTIONS=
 GUI=1
 
-while getopts “h:d:r:u:g:s” OPTION
+while getopts “hd:r:u:gs” OPTION
 do
      case $OPTION in
          h)
