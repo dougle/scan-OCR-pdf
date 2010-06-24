@@ -4,7 +4,7 @@ This provides the original scan but also something searchable, e.g. for use in g
 
 I played around with tesseract, very good OCR but no layout analisys!! so cuneiform it is.
 
-This was built and tested on a gnome machine but i dont see any reason for it to fail on kde or non linux OSs as long as dependancies are met, feedback on this would be welcome.
+This was built and tested on a gnome machine but i dont see any reason for it to fail on kde or a non linux OSs as long as dependancies are met, feedback on this would be welcome.
 
 
 To install, currently only manual install:
@@ -33,10 +33,12 @@ OPTIONS:
 
 To debug simple add -x to the first line:
 #!/bin/bash -x
+    or run
+$ /bin/bash -x /usr/bin/scan_ocr_pdf -g -d "/home/dougle/Documents"
 
 This'll add a line by line transcription of the execution and would be usefull in any weird/occasional bugs.
 
 
 
-More options and features will be added soon, like a simple zenity OK/Cancel interface
+More options and features will be added soon, like a device list if -u is not specified and more than one device is present
 Forks, Patches, Feature requests, Bug reports, comments welome.
