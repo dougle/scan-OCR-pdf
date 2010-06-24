@@ -118,11 +118,11 @@ for i in $(seq --format=%003.f 1 150); do
 
 	# a more appropriate quit button first time
 	CANCEL_TEXT="Make PDF & Quit"
-	if [[ $i == "001" ]]; then
+	if [ $i == "001" ]; then
 		CANCEL_TEXT="Quit"
 	fi
 
-	KEY_INPUT=""	
+	KEY_INPUT=
 	# wait for user
 	if [ $GUI -eq 0 ];then
 		zenity --question --cancel-label="$CANCEL_TEXT" --ok-label="Scan" --text="Prepare page $i and press Scan."
@@ -135,7 +135,7 @@ for i in $(seq --format=%003.f 1 150); do
 	fi
 
   # check for quit command
-  if [[ "$KEY_INPUT" == "q" || "$KEY_INPUT" == "Q" ]];then
+  if [ "$KEY_INPUT" == "q" ] || [ "$KEY_INPUT" == "Q" ];then
   	break
   fi
 
@@ -143,7 +143,7 @@ for i in $(seq --format=%003.f 1 150); do
   scanimage --device $IMAGING_DEVICE --resolution $SCANNING_RES --mode 'Color'  -l 0 -t 0 -x 210 -y 297       $SCANIMAGE_OPTIONS          --format=pnm >"$TMP_FOLDER/$DATE_STAMP-$i.pnm"
   
   # check for scan failure, error and quit
-  if [ ! $? && ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ];then
+  if [ $? -gt 0 ] && [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.pnm" ];then
   	echo "xSane scanning failed: quiting"
   	exit 1
   fi
@@ -154,7 +154,7 @@ for i in $(seq --format=%003.f 1 150); do
   
   cuneiform "$TMP_FOLDER/$DATE_STAMP-$i.bmp" -o "$TMP_FOLDER/$DATE_STAMP-$i.txt"
   
-  if [ !$? && ! -s "$TMP_FOLDER/$DATE_STAMP-$i.txt" ];then
+  if [ $? -gt 0 ] && [ ! -s "$TMP_FOLDER/$DATE_STAMP-$i.txt" ];then
   	echo "Cuneiform Failed: quiting"
   	exit 1
   fi
@@ -167,7 +167,8 @@ for i in $(seq --format=%003.f 1 150); do
 done
 
 # collect all of the files into one final pdf
-if [ ! -z `ls $TMP_FOLDER/` ];then
+TMP_CONTENTS=`ls $TMP_FOLDER/`
+if [ ! -z "$TMP_CONTENTS" ];then
 	cat $TMP_FOLDER/$DATE_STAMP-text-*.ps > "$TMP_FOLDER/$DATE_STAMP-text.ps"
 	OUTPUT_FILE=`date +'%d %B %Y - %R:%S'`
 	INPUT_FILES=`ls $TMP_FOLDER/$DATE_STAMP-page-*.ps`
